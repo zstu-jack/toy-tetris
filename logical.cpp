@@ -8,7 +8,7 @@ void update(int size){
     clear();
     for(int i = 0; i < size; i ++){
         for(int j = 0; j < size; j ++){
-            printw("*");
+            printw("[]");
         }
         printw("\n");
     }

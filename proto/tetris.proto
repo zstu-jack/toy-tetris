@@ -1,0 +1,25 @@
+enum GameOpType{
+    BLOCK_DOWN = 1;
+    PLAYER_OPERATOR = 2;
+}
+
+enum MessageID
+{
+    LOGIN = 1;
+
+    PLAYER_READY = 2;
+
+    GAME_PLAYER_OP = 100;
+    GAME_INF_PLAYER_OP = 101;
+    GAME_INF_GAME_END = 102;
+}
+
+message GamePlayerOp{
+
+}
+message GameInfPlayerOp{
+
+}
+message GameInfGameEnd{
+
+}
