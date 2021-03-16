@@ -11,6 +11,10 @@ const int MAX_PLAYER = 2;
 const int BLOCK_BORN_N = 0;  // [0, 5]
 const int BLOCK_BORN_M = 5;  // [0, 5]
 const int BLOCK_DOWN_INTERVAL_MS = 500;
+const int BLOCK_TYPE = 7;
+const int MAP_EMPTY = 0;
+const int MAP_BLOCK = 1;
+const int RANDOM_BLOCK = 4000;
 
 std::vector<std::pair<int, int>> dots_in_axis(int type);
 
@@ -20,20 +24,29 @@ class Map{
 public:
     int map[N][M];
 public:
-    Map();
+    Map(){
+        for(int i = 0; i < N; ++ i){
+            for(int j = 0; j < M; ++ j){
+                map[i][j] = MAP_EMPTY;
+            }
+        }
+    }
 
 };
 
 class Logical{
 public:
-    Map map[MAX_PLAYER];
+    Map<N, M, '*'> map[MAX_PLAYER];
+    std::vector<int> block_down_types;
+    int block_down_index[MAX_PLAYER];
+    int alive_player;
 public:
-    void update(){
-
-    }
-    void input(){
-
-    }
+    Logical();
+    // serve side.
+    void input();
+    // client side.
+    void print();
+    void player_op();
 };
 
 #endif //LOGICAL_H

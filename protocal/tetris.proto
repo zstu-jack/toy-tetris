@@ -1,13 +1,18 @@
+syntax = "proto2";
+
 enum GameOpType{
-    BLOCK_DOWN = 1;
-    PLAYER_OPERATOR = 2;
+    BLOCK_DOWN = 0;
+    PLAYER_OPERATOR = 1;
 }
 
 enum MessageID
 {
-    LOGIN = 1;
+    REQ_LOGIN = 1;
+    RSP_LOGIN = 2;
 
-    PLAYER_READY = 2;
+    REQ_PLAYER_MATCH = 3;
+    RSP_PLAYER_MATCH = 4;
+    INF_PLAYER_MATCH_SUCCESS = 5;
 
     GAME_PLAYER_OP = 100;
     GAME_INF_PLAYER_OP = 101;
