@@ -1,7 +1,6 @@
 syntax = "proto2";
 
 enum GameOpType{
-    BLOCK_DOWN = 0;
     PLAYER_OPERATOR = 1;
 }
 
