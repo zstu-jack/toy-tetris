@@ -103,6 +103,7 @@ void print_screen(){
             ch = getch();
             if (toupper(ch) == 'S'){
                 logical.init(1, get_1970_ms(), MODE_SINGLE);
+                logical.start();
                 player_state = SINGLE_GAME;
             }else if(toupper(ch) == 'M'){
 
@@ -110,11 +111,21 @@ void print_screen(){
             break;
         case SINGLE_GAME:
             ch = getch();
-            if(key_to_op_type.count(ch)){
-                logical.input(0, ch);
+            if(key_to_op_type.count((int)ch)){
+                logical.input(0, key_to_op_type.find(ch)->second);
             }
             logical.update(current_timestamp_ms);
             logical.print();
+            if(logical.alive_player() == 0){
+                printw("\n\n dead, input `q` to quit\n\n > ");
+                for(;;){
+                    ch = getch();
+                    if(toupper(ch) == 'Q'){
+                        player_state = IDLE;
+                        break;
+                    }
+                }
+            }
             break;
         case MATCH_GAME:
             break;
