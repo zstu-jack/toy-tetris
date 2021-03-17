@@ -112,7 +112,7 @@ public:
     void block_born(int player_index);
     bool check(int player_index, Block block);
 
-    void init(int number_player, int time_ms, int game_mode);
+    void init(int number_player, int time_ms, int game_mode, int you = 0);
     void input(int player_index, int type);
     void update(int time_ms);
     void print(); // client side.

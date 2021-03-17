@@ -10,7 +10,7 @@ Logical::Logical(){
 
 };
 
-void Logical::init(int number_player, int time_ms, int game_mode, int you = 0){
+void Logical::init(int number_player, int time_ms, int game_mode, int you){
     assert(number_player <= MAX_PLAYER);
     block_down_types.clear();
     this->number_player = number_player;

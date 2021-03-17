@@ -15,7 +15,6 @@ const int listen_port = 9090;
 bool quit = false;
 Logger logger(DETAIL, "server_log");
 
-std::map<int, Player> uid_to_player;
 std::map<TcpConnection*, int> conn_to_uid;
 std::map<int, std::function<void(const TcpConnection* , Head&, const char*, int)> > callbacks;
 // std::map<int, shared_ptr<logical>>
