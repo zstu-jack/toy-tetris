@@ -7,7 +7,6 @@
 #include "../easy-muduo/common/TcpServer.h"
 #include "../common/head.h"
 #include "../common/util.h"
-#include "server.h"
 #include "../protocal/tetris.pb.h"
 
 extern const int MAX_BUFFER_SIZE;
