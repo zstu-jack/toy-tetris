@@ -8,6 +8,8 @@
 #include <map>
 #include "common/common_define.h"
 
+struct Game;
+
 // map: [0, N-1], [0, M-1]
 template<int MAP_SIZE_N, int MAP_SIZE_M>
 struct Map{
@@ -39,6 +41,8 @@ public:
     int number_player;
 public:
     int game_mode;
+    int server_side;
+    Game* server_game;
     int run;
 
 public:
@@ -60,6 +64,7 @@ public:
 
     void start();
     void stop();
+    void set_server(Game* game);
 
 };
 

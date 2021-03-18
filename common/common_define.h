@@ -52,6 +52,7 @@ enum MAP_STATE{
 enum GAME_BASIC_SETTING{
     BLOCK_TOTAL_TYPE = 7,
     MAX_PLAYER = 5,
+    MATCH_PLAYER_NUM = 2,
     BLOCK_DOWN_INTERVAL_MS = 500,
     BLOCK_DOWN_RANDOM_MAX_SIZE = 4000,
 };
@@ -75,5 +76,6 @@ extern const std::map<int, int> key_to_op_type;
 ///////// Graphics //////////
 extern const std::pair<int, int> SHELL_BLOCK_POSITION[MAX_PLAYER-1];
 extern const std::pair<int, int> SHELL_BLOCK_SELF_POSITION;
+
 
 #endif //COMMON_DEFINE_H

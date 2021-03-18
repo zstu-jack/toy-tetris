@@ -1,9 +1,5 @@
 syntax = "proto2";
 
-enum GameOpType{
-    PLAYER_OPERATOR = 1;
-}
-
 enum MessageID
 {
     REQ_LOGIN = 1;
@@ -13,17 +9,38 @@ enum MessageID
     RSP_PLAYER_MATCH = 4;
     INF_PLAYER_MATCH_SUCCESS = 5;
 
-    GAME_PLAYER_OP = 100;
+    REQ_GAME_PLAYER_LEAVE = 99;
+    REQ_GAME_PLAYER_OP = 100;
     GAME_INF_PLAYER_OP = 101;
     GAME_INF_GAME_END = 102;
 }
-
-message GamePlayerOp{
-
+message ReqPlayerLogin{
+    required string name = 1;
 }
-message GameInfPlayerOp{
-
+message RspPlayerLogin{
+    required int32 uid = 1;
 }
-message GameInfGameEnd{
+message ReqPlayerMatch{
+    required int32 player_number = 1;
+}
+message RspPlayerMatch{}
+message InfPlayerMatchSuccess{
+    repeated int32 uids = 1;
+    required int32 gameid = 2;
+}
+
+message ReqGamePlayerOp{
+    required int32 op = 1;
+}
+message ReqGamePlayerLeave{}
+message GameOp{
+    required int32 op = 1;
+    required int32 uid = 2;
+}
+message InfGamePlayerOp{
+    required int32 gameid = 1;
+    repeated GameOp ops = 2;
+}
+message InfGameGameEnd{
 
 }

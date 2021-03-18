@@ -7,6 +7,7 @@
 #include "common/util.h"
 #include "common/common_define.h"
 #include "logical.h"
+#include "server/server.h"
 
 Logical::Logical(){
 
@@ -14,6 +15,7 @@ Logical::Logical(){
 
 void Logical::init(int number_player, int time_ms, int game_mode){
     assert(number_player <= MAX_PLAYER);
+    server_side = false;
     for(int i = 0; i < MAX_PLAYER; i ++) {
         player_state[i] = PLAYER_GAME_DEATH;
     }
@@ -26,8 +28,9 @@ void Logical::init(int number_player, int time_ms, int game_mode){
     block_down_types.push_back(get_random(0, 1000007) % BLOCK_TOTAL_TYPE);
     for(int i = 0; i < number_player; i ++){
         block_down_index[i] = 0;
-        block_down_state[i] = {MAP_BLOCK_BORN_N, MAP_BLOCK_BORN_M, block_down_types[block_down_index[i] ++],
-                               get_random(0,INT_MAX) % BLOCK_SHAPE_NUM[block_down_state[i].type]};
+        block_down_state[i] = {MAP_BLOCK_BORN_N, MAP_BLOCK_BORN_M, block_down_types[block_down_index[i] ++], 0};
+        block_down_state[i].shape = get_random(0,1000007) % BLOCK_SHAPE_NUM[block_down_state[i].type];
+
         block_down_last_time_ms[i] = time_ms;
         player_state[i] = PLAYER_GAME_ALIVE;
     }
@@ -105,6 +108,85 @@ void Logical::block_born(int player_index){
     block_down_state[player_index] = born_block;
 }
 
+void Logical::print_mode_single(int player_index){
+    if (game_mode != GAME_MODE_SINGLE){
+        return;
+    }
+
+    auto n_char = [](int n, char c){
+        for(int i = 0; i < n; ++ i) printw("%c", c);
+    };
+
+    n_char(8, '\n');
+    // n_char(5, '\t');  n_char(2 * M +2, '-'); n_char(1, '\n');
+    n_char(5, '\t');  n_char(2 * MAP_SIZE_M +2, '-'); n_char(1, '\n');
+    for(int i = 0; i < MAP_SIZE_N; i ++){
+        n_char(5, '\t'); n_char(1, '|');
+        for(int j = 0; j < MAP_SIZE_M; j ++){
+            printw("%s", map[player_index].map[i][j] ? "[]" : "  ");
+        }
+        n_char(1, '|');
+        n_char(1, '\n');
+    }
+    n_char(5, '\t');  n_char(2 * MAP_SIZE_M +2, '-');
+}
+void Logical::print_mode_match(){
+    if(game_mode != GAME_MODE_MATCH){
+        return ;
+    }
+
+    auto n_char = [](int n, char c){
+        for(int i = 0; i < n; ++ i) printw("%c", c);
+    };
+
+    n_char(8, '\n');
+    n_char(5, '\t');
+    n_char(2 * MAP_SIZE_M + 2, '-');
+    for(int i = 1; i < number_player; i ++) {
+        n_char(10, ' ');
+        n_char(2 * MAP_SIZE_M + 2, '-');
+    }
+    n_char(1, '\n');
+    for(int i = 0; i < MAP_SIZE_N; i ++){
+        n_char(5, '\t');
+        n_char(1, '|');
+        for (int j = 0; j < MAP_SIZE_M; j++) {
+            printw("%s", map[0].map[i][j] ? "[]" : "  ");
+        }
+        n_char(1, '|');
+        for(int pi = 1; pi < number_player; pi ++) {
+            n_char(10, ' ');
+            n_char(1, '|');
+            for (int j = 0; j < MAP_SIZE_M; j++) {
+                printw("%s", map[pi].map[i][j] ? "[]" : "  ");
+            }
+            n_char(1, '|');
+        }
+        n_char(1, '\n');
+    }
+    n_char(5, '\t');  n_char(2 * MAP_SIZE_M +2, '-');
+    for(int i = 1; i < number_player; i ++) {
+        n_char(10, ' ');
+        n_char(2 * MAP_SIZE_M + 2, '-');
+    }
+}
+
+void Logical::print(){
+    if(run == 0){
+        return ;
+    }
+    if(alive_player() == 0){
+        return ;
+    }
+    clear();
+    set_map_block_for_all_player(MAP_BLOCK_NOT_EMPTY);
+    print_mode_single(0);
+    print_mode_match();
+    set_map_block_for_all_player(MAP_BLOCK_EMPTY);
+    refresh();
+}
+
+
 void Logical::input(int player_index, int op){
     if(run == 0){
         return ;
@@ -112,6 +194,12 @@ void Logical::input(int player_index, int op){
     if(player_state[player_index] == PLAYER_GAME_DEATH){
         return ;
     }
+
+#ifdef SERVER_SIDE
+    if(server_side){
+        server_game->input(player_index, op);
+    }
+#endif
 
     Block nxt_block = block_down_state[player_index];
     auto block_state_trans = [&](int player_index, Block& next_block)->bool {
@@ -151,48 +239,6 @@ void Logical::input(int player_index, int op){
     }
 }
 
-void Logical::print_mode_single(int player_index){
-    if (game_mode != GAME_MODE_SINGLE){
-        return;
-    }
-
-    auto n_char = [](int n, char c){
-        for(int i = 0; i < n; ++ i) printw("%c", c);
-    };
-
-    n_char(8, '\n');
-    // n_char(5, '\t');  n_char(2 * M +2, '-'); n_char(1, '\n');
-    n_char(5, '\t');  n_char(2 * MAP_SIZE_M +2, '-'); n_char(1, '\n');
-    for(int i = 0; i < MAP_SIZE_N; i ++){
-        n_char(5, '\t'); n_char(1, '|');
-        for(int j = 0; j < MAP_SIZE_M; j ++){
-            printw("%s", map[player_index].map[i][j] ? "[]" : "  ");
-        }
-        n_char(1, '|');
-        n_char(1, '\n');
-    }
-    n_char(5, '\t');  n_char(2 * MAP_SIZE_M +2, '-');
-}
-void Logical::print_mode_match(){
-    if(game_mode != GAME_MODE_MATCH){
-        return ;
-    }
-}
-
-void Logical::print(){
-    if(run == 0){
-        return ;
-    }
-    if(alive_player() == 0){
-        return ;
-    }
-    clear();
-    set_map_block_for_all_player(MAP_BLOCK_NOT_EMPTY);
-    print_mode_single(0);
-    print_mode_match();
-    set_map_block_for_all_player(MAP_BLOCK_EMPTY);
-    refresh();
-}
 void Logical::update(int time_ms){
     if(run == 0){
         return ;
@@ -214,4 +260,7 @@ void Logical::start() {
 void Logical::stop() {
     run = 0;
 }
-
+void Logical::set_server(Game* game) {
+    server_side = 1;
+    this->server_game = game;
+}
