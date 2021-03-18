@@ -18,37 +18,25 @@
 
 #include "../common/head.h"
 #include "../common/util.h"
+#include "../common/common_define.h"
 
 #include "../logical.h"
 
-extern int MAX_BUFFER_SIZE;
-const char* ip = "127.0.0.1";
-const int listen_port = 9090;
-const int loop_time_out_ms = 1;
 long long current_timestamp_ms = 0;
-bool quit = false;
 std::map<int, std::function<void(const TcpConnection* , Head& , const char*, int) > > callbacks;
 Logger logger(DETAIL, "client_log");
 
 //////
-enum PLAYER_STATE{
-    IDLE = 0,
-    MATCHING = 1,
-    SINGLE_GAME = 2,
-    SINGLE_DEATH = 3,
-    MATCH_GAME = 4,
-};
 std::string player_name;
 int player_uid;
 int player_state;
 char ch;
 Logical logical;
 
-
 int decodeMessage(const TcpConnection* conn, const char* msg, int len){
     if(len < 4) return 0;
     auto pkgSize = ntohl(*(int32_t *) msg);
-    if(pkgSize >= MAX_BUFFER_SIZE || pkgSize < 0){
+    if(pkgSize >= SOCKET_APP_MAX_BUFFER_SIZE || pkgSize < 0){
         return -1;
     }
     return pkgSize;
@@ -81,13 +69,12 @@ void init_input(){
     fflush(stdout);
     while(player_name.length() == 0){
         std::cin >> player_name;
-        if(player_name.length() == 0){
+        if(player_name.length() == 0 || player_name.length() > MAX_PLAYER_NAME_LENGTH){
             printf("\n\n\t\t\t\t\tname can't be empty\n\n\t\t\t\t\ttype your name > ");
             fflush(stdout);
         }
     }
-    player_state = IDLE;
-
+    player_state = CLIENT_PLAYER_STATE_IDLE;
 
     initscr();
     nodelay(stdscr, true);   // make getch() non-block call.
@@ -97,19 +84,19 @@ void init_input(){
 
 void print_screen(){
     switch (player_state) {
-        case IDLE:
+        case CLIENT_PLAYER_STATE_IDLE:
             clear();
             printw(" \n\n single mode, input `s`\n\n match mode, input `m` \n\n> ");
             ch = getch();
             if (toupper(ch) == 'S'){
-                logical.init(1, get_1970_ms(), MODE_SINGLE);
+                logical.init(1, get_1970_ms(), GAME_MODE_SINGLE);
                 logical.start();
-                player_state = SINGLE_GAME;
+                player_state = CLIENT_PLAYER_STATE_SINGLE_GAME;
             }else if(toupper(ch) == 'M'){
 
             }
             break;
-        case SINGLE_GAME:
+        case CLIENT_PLAYER_STATE_SINGLE_GAME:
             ch = getch();
             if(key_to_op_type.count((int)ch)){
                 logical.input(0, key_to_op_type.find(ch)->second);
@@ -118,31 +105,29 @@ void print_screen(){
             logical.print();
             if(logical.alive_player() == 0){
                 printw("\n\n dead, input `q` to quit\n\n > ");
-                for(;;){
-                    ch = getch();
-                    if(toupper(ch) == 'Q'){
-                        player_state = IDLE;
-                        break;
-                    }
-                }
+                do{ ch = getch(); } while (toupper(ch) != 'Q');
+                player_state = CLIENT_PLAYER_STATE_IDLE;
             }
             break;
-        case MATCH_GAME:
+        case CLIENT_PLAYER_STATE_MATCH_GAME:
             break;
-        case MATCHING:
+        case CLIENT_PLAYER_STATE_MATCHING:
             break;
     }
 }
 
+
+
 int main(int argc, char* argv[])
 {
     init_input();
+    bool quit = false;
 
     EventLoop loop;
     loop.set_logger(&logger);
 
     //1. connecting
-    TcpClient client(&loop, ip, listen_port);
+    TcpClient client(&loop, SOCKET_IP, SOCKET_PORT);
     client.setConnectionCallback(std::bind(&onConnection,  _1));
     client.setMessageCallback(std::bind(&onMessage, _1, _2, _3));
     client.setPkgDecodeCallback(std::bind(&decodeMessage, _1, _2, _3));
@@ -151,7 +136,7 @@ int main(int argc, char* argv[])
     do{
         current_timestamp_ms = get_1970_ms();
         print_screen();
-        loop.update(loop_time_out_ms);
+        loop.update(CLIENT_LOOP_TIMEOUT);
     }while(!quit);
 }
 

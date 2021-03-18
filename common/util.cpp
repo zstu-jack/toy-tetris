@@ -1,14 +1,13 @@
 #include <sys/time.h>
 
 #include "util.h"
-
-extern const int MAX_BUFFER_SIZE = 10240;
+#include "common_define.h"
 
 std::string packMessage(int msgid, int uin, google::protobuf::Message& message){
-    static char buff[MAX_BUFFER_SIZE];
+    static char buff[SOCKET_APP_MAX_BUFFER_SIZE];
     std::string body = message.SerializeAsString();
     int msg_len = body.size() + 12;
-    assert(msg_len <= MAX_BUFFER_SIZE);
+    assert(msg_len <= SOCKET_APP_MAX_BUFFER_SIZE);
 
     *(uint32_t*)buff = htonl(msg_len);
     *(uint32_t*)(buff+4) = htonl(msgid);
