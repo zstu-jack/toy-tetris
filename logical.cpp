@@ -19,9 +19,7 @@ void Logical::init(int number_player, int time_ms, int game_mode, int you){
     for(int i = 0; i < number_player; i ++){
         map[i].init();
     }
-    for(int i = 0; i < RANDOM_BLOCK; i ++){
-        block_down_types.push_back(get_random(0, 1000007) % BLOCK_TYPE);
-    }
+    block_down_types.push_back(get_random(0, 1000007) % BLOCK_TYPE);
     for(int i = 0; i < number_player; i ++){
         block_down_index[i] = 0;
         block_down_state[i].x = BLOCK_BORN_N;
@@ -59,7 +57,42 @@ bool Logical::check(int player_index, Block block){
     return true;
 }
 
+void Logical::eliminate_lines(int player_index){
+    std::vector<int> uneliminates_lines = {};
+    for(int i = N - 1; i >= 0; i --){
+        bool all = 1;
+        for(int j = 0; j < M; j ++){
+            if(map[player_index].map[i][j] == MAP_EMPTY) all = 0;
+        }
+        if(!all) {
+            uneliminates_lines.push_back(i);
+        }
+    }
+    int put_row = N;
+    for(int move_row : uneliminates_lines){
+        memmove(map[player_index].map[-- put_row],map[player_index].map[move_row], sizeof(map[player_index].map[move_row]));
+    }
+    for(int i = 0; i < put_row; i ++){
+        for(int j = 0; j < M; ++ j){
+            map[player_index].map[i][j] = MAP_EMPTY;
+        }
+    }
+
+}
+
 void Logical::block_born(int player_index){
+
+    for(int i = 0; i < 16; i ++){
+        int offx = i / 4;
+        int offy = i % 4;
+        auto& block = block_down_state[player_index];
+        int has = BLOCK_SHAPE[block.type][block.shape][i];
+        if(has){
+            map[player_index].map[offx + block.x][offy + block.y] = MAP_BLOCK;
+        }
+    }
+
+    eliminate_lines(player_index);
 
     Block born_block;
     born_block.x = BLOCK_BORN_N;
@@ -67,20 +100,14 @@ void Logical::block_born(int player_index){
     if(block_down_index[player_index] >= RANDOM_BLOCK){
         block_down_index[player_index] = 0;
     }
+    if(block_down_types.size() <= block_down_index[player_index]){
+        block_down_types.push_back(get_random(0, 1000007) % BLOCK_TYPE);
+    }
     born_block.type = block_down_types[block_down_index[player_index] ++];
     born_block.shape = get_random(0, 100007) % BLOCK_SHAPE_NUM[born_block.type];
     if(!check(player_index, born_block)){
         player_state[player_index] = DEATH;
     }else{
-        for(int i = 0; i < 16; i ++){
-            int offx = i / 4;
-            int offy = i % 4;
-            auto& block = block_down_state[player_index];
-            int has = BLOCK_SHAPE[block.type][block.shape][i];
-            if(has){
-                map[player_index].map[offx + block.x][offy + block.y] = MAP_BLOCK;
-            }
-        }
         block_down_state[player_index] = born_block;
     }
 }
@@ -146,20 +173,22 @@ void Logical::print_mode_single(int player_index){
         return;
     }
 
-    for(int i = 0; i < M + 2; ++ i){
-        printw("-");
-    }
-    printw("\n");
+    auto n_char = [](int n, char c){
+        for(int i = 0; i < n; ++ i) printw("%c", c);
+    };
+
+    n_char(8, '\n');
+    // n_char(5, '\t');  n_char(2 * M +2, '-'); n_char(1, '\n');
+    n_char(5, '\t');  n_char(2 * M +2, '-'); n_char(1, '\n');
     for(int i = 0; i < N; i ++){
-        printw("|");
+        n_char(5, '\t'); n_char(1, '|');
         for(int j = 0; j < M; j ++){
-            printw("%c", map[player_index].map[i][j] ? '*' : ' ');
+            printw("%s", map[player_index].map[i][j] ? "[]" : "  ");
         }
-        printw("|\n");
+        n_char(1, '|');
+        n_char(1, '\n');
     }
-    for(int i = 0; i < M + 2; ++ i){
-        printw("-");
-    }
+    n_char(5, '\t');  n_char(2 * M +2, '-');
 }
 void Logical::print_mode_match(){
     if(game_mode != MODE_MATCH){

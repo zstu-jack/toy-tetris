@@ -109,6 +109,7 @@ public:
 
 public:
     Logical();
+    void eliminate_lines(int player_index);
     void block_born(int player_index);
     bool check(int player_index, Block block);
 

@@ -77,12 +77,12 @@ void onMessage(const TcpConnection* conn, const char* msg, int len)
 
 
 void init_input(){
-    printf("\n\n-> type your name:");
+    printf("\n\n\t\t\t\t\t type your name > ");
     fflush(stdout);
     while(player_name.length() == 0){
         std::cin >> player_name;
         if(player_name.length() == 0){
-            printf("\n\nname can't be empty\n -> type your name:");
+            printf("\n\n\t\t\t\t\tname can't be empty\n\n\t\t\t\t\ttype your name > ");
             fflush(stdout);
         }
     }

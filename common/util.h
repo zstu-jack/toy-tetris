@@ -12,7 +12,7 @@
 
 template<typename T>
 T get_random(T l, T r){
-    std::mt19937 rnd(time(0));
+    std::mt19937 rnd(time(NULL));
     return rnd() % (r - l + 1) + l;
 }
 
