@@ -8,6 +8,10 @@
 #include <set>
 #include <string>
 
+#include "../../easy-muduo/common/Log.h"
+
+extern Logger logger;
+
 class TcpConnection;
 class Logical;
 

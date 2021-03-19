@@ -10,6 +10,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define LOG(LEVEL, X, ...) log(LEVEL, "[%20s:%-3d-%20s] [" X "]\n", __FILENAME__,  __LINE__,__FUNCTION__, ##__VA_ARGS__)
+
 template<typename T>
 T get_random(T l, T r){
     std::mt19937 rnd(time(NULL));

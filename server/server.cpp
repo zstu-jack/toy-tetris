@@ -47,7 +47,7 @@ void Server::leave_player(const TcpConnection* conn){
         // game
         player_leave_game(uid);
     }else{
-        logger.log(DETAIL, " leave without uid, fd = %d", conn->get_fd());
+        logger.LOG(DETAIL, " leave without uid, fd = %d", conn->get_fd());
     }
 }
 void Server::player_leave_game(int uid){
@@ -56,9 +56,8 @@ void Server::player_leave_game(int uid){
         Game* game = gameid_to_game[iter->second];
         game->leave(uid);
         if(game->stills.size() == 0){
-            delete game->logical;
             delete game;
-            gameid_to_game.erase(uid);
+            gameid_to_game.erase(iter->second);
         }
         uid_to_gameid.erase(uid);
     }
@@ -68,10 +67,10 @@ Server server;
 
 void Game::input(int player_index, int op){
     if(player_index >= uids.size()){
-        logger.log(ERROR, "index too large, player_index = %d, op = %d\n", player_index, op);
+        logger.LOG(ERROR, "index too large, player_index = %d, op = %d", player_index, op);
         return ;
     }
-    logger.log(DETAIL, "player_index = %d, op = %d\n", player_index, op);
+    logger.LOG(DETAIL, "player_index = %d, op = %d", player_index, op);
     InfGamePlayerOp ops;
     ops.set_gameid(server.uid_to_gameid[uids[player_index]]);
     auto* opptr = ops.add_ops();
@@ -99,7 +98,7 @@ int decodeMessage(const TcpConnection* conn, const char* msg, int len){
     if(len < 4) return 0;
     auto pkgSize = ntohl(*(int32_t *) msg);
     if(pkgSize >= SOCKET_APP_MAX_BUFFER_SIZE || pkgSize < 0){
-        logger.log(WARNING, "[size = %d]\n", pkgSize);
+        logger.LOG(WARNING, "[size = %d]", pkgSize);
         return -1;
     }
     return pkgSize;
@@ -107,16 +106,17 @@ int decodeMessage(const TcpConnection* conn, const char* msg, int len){
 void onConnection(const TcpConnection* conn){
     // you can echo peer's ip and port here.
     if(conn->connected()){
-        logger.log(DETAIL,"connected [fd = %d]\n",  conn->get_fd());
+        logger.LOG(DETAIL,"connected [fd = %d]",  conn->get_fd());
     }else{
-        logger.log(DETAIL,"disconnected [fd = %d]\n",  conn->get_fd());
+        logger.LOG(DETAIL,"disconnected [fd = %d]",  conn->get_fd());
         server.leave_player(conn);
+
     }
 }
 void onMessage(const TcpConnection* conn, const char* msg, int len){
     auto ptr = msg;
     Head head{ntohl(*(uint32_t *) ptr), ntohl(*(uint32_t *) (ptr+4)), ntohl(*(uint32_t *) (ptr+8))};
-    logger.log(DETAIL,"[fd = %d, head = %s]\n", conn->get_fd(), head.to_string().c_str());
+    logger.LOG(DETAIL,"[fd = %d, head = %s]", conn->get_fd(), head.to_string().c_str());
     callbacks[head.msg_id](conn, head, msg, len);
 }
 
@@ -124,7 +124,7 @@ void onReqLogin(const TcpConnection* conn, Head& head, const char* msg, int len)
     ReqPlayerLogin req;
     req.ParseFromArray(msg+head.size(), len-head.size());
     auto* player = server.new_player(conn, req.name());
-    logger.log(DETAIL, "login, uid = %d, fd = %d", head.uid, conn->get_fd());
+    logger.LOG(DETAIL, "login, uid = %d, fd = %d", head.uid, conn->get_fd());
     RspPlayerLogin rsp;
     rsp.set_uid(player->uid);
 
@@ -132,18 +132,18 @@ void onReqLogin(const TcpConnection* conn, Head& head, const char* msg, int len)
 }
 void onGamePlayerLeave(const TcpConnection* conn, Head& head, const char* msg, int len){
     if(head.uid < 0){
-        logger.log(ERROR, "leave, uid = %d, fd = %d\n", head.uid, conn->get_fd());
+        logger.LOG(ERROR, "leave, uid = %d, fd = %d", head.uid, conn->get_fd());
         return ;
     }
-    logger.log(DETAIL, "on leave, uid = %d, fd = %d", head.uid, conn->get_fd());
+    logger.LOG(DETAIL, "on leave, uid = %d, fd = %d", head.uid, conn->get_fd());
     server.player_leave_game(head.uid);
 }
 void onGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, int len){
     if(head.uid < 0){
-        logger.log(ERROR, "leave, uid = %d, fd = %d\n", head.uid, conn->get_fd());
+        logger.LOG(ERROR, "leave, uid = %d, fd = %d", head.uid, conn->get_fd());
         return ;
     }
-    logger.log(DETAIL, "op, uid = %d, fd = %d\n", head.uid, conn->get_fd());
+    logger.LOG(DETAIL, "op, uid = %d, fd = %d", head.uid, conn->get_fd());
     ReqGamePlayerOp req;
     req.ParseFromArray(msg+head.size(), len-head.size());
     int op = req.op();
@@ -160,22 +160,22 @@ void onGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, int 
             }
         }
         if(index == -1){
-            logger.log(ERROR, "index == -1, uid= %d, fd = %d\n", head.uid, conn->get_fd());
+            logger.LOG(ERROR, "index == -1, uid= %d, fd = %d", head.uid, conn->get_fd());
             return ;
         }
         game->logical->input(index, op);
     }else{
-        logger.log(WARNING, "no such uid in uin_to_gameid, uid=%d\n", head.uid);
+        logger.LOG(WARNING, "no such uid in uin_to_gameid, uid=%d", head.uid);
     }
 }
 void onReqPlayerMatch(const TcpConnection* conn, Head& head, const char* msg, int len){
     ReqPlayerMatch req;
     req.ParseFromArray(msg+head.size(), len-head.size());
     if(head.uid < 0){
-        logger.log(WARNING, "match, uid = %d, fd = %d", head.uid, conn->get_fd());
+        logger.LOG(WARNING, "uin < 0, uid = %d, fd = %d", head.uid, conn->get_fd());
         return ;
     }
-    logger.log(DETAIL, "enter match, uid = %d, fd = %d", head.uid, conn->get_fd());
+    logger.LOG(DETAIL, "uid = %d, fd = %d", head.uid, conn->get_fd());
     RspPlayerMatch rsp;
     server.uid_to_conn[head.uid]->send(packMessage(MessageID::RSP_PLAYER_MATCH, head.uid, rsp));
     server.match_uids.insert(head.uid);

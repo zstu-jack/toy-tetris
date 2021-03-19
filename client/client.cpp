@@ -55,14 +55,14 @@ void onConnection(const TcpConnection* conn)
     if (conn->connected())
     {
         player_state = CLIENT_PLAYER_STATE_IDLE;
-        logger.log(DETAIL,"connect [fd = %d]\n",  conn->get_fd());
+        logger.LOG(DETAIL,"connect [fd = %d]\n",  conn->get_fd());
         ReqPlayerLogin req;
         req.set_name(player.player_name);
         player.conn->send(packMessage(MessageID::REQ_LOGIN,-1, req));
     }
     else
     {
-        logger.log(DETAIL, "disconnect [fd = %d]\n", conn->get_fd());
+        logger.LOG(DETAIL, "disconnect [fd = %d]\n", conn->get_fd());
         player.connected = 0;
         player.player_uid = -1;
     }
@@ -184,10 +184,10 @@ void onInfGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, i
     InfGamePlayerOp inf;
     inf.ParseFromArray(msg+head.size(), len-head.size());
     if(inf.gameid() != gameid){
-        logger.log(WARNING, "local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
+        logger.LOG(WARNING, "local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
         return ;
     }
-    logger.log(DETAIL, "InfGamePlayerOp gameid = %d, remote gameid = %d, op size=%d\n", gameid, inf.gameid(),inf.ops_size());
+    logger.LOG(DETAIL, "InfGamePlayerOp gameid = %d, remote gameid = %d, op size=%d\n", gameid, inf.gameid(),inf.ops_size());
     for(int j = 0; j < inf.ops_size(); j ++) {
         auto& op = inf.ops(j);
         int index = -1;
@@ -197,7 +197,7 @@ void onInfGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, i
             }
         }
         if(index == -1){
-            logger.log(WARNING, "no such uid, local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
+            logger.LOG(WARNING, "no such uid, local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
             continue;
         }
         logical.input(index, op.op());
