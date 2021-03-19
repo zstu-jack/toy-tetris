@@ -55,14 +55,14 @@ void onConnection(const TcpConnection* conn)
     if (conn->connected())
     {
         player_state = CLIENT_PLAYER_STATE_IDLE;
-        logger.LOG(DETAIL,"connect [fd = %d]\n",  conn->get_fd());
+        logger.LOG(DETAIL,"connect [fd = %d]",  conn->get_fd());
         ReqPlayerLogin req;
         req.set_name(player.player_name);
         player.conn->send(packMessage(MessageID::REQ_LOGIN,-1, req));
     }
     else
     {
-        logger.LOG(DETAIL, "disconnect [fd = %d]\n", conn->get_fd());
+        logger.LOG(DETAIL, "disconnect [fd = %d]", conn->get_fd());
         player.connected = 0;
         player.player_uid = -1;
     }
