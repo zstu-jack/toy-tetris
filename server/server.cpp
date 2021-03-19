@@ -137,6 +137,8 @@ void onGamePlayerLeave(const TcpConnection* conn, Head& head, const char* msg, i
     }
     logger.LOG(DETAIL, "on leave, uid = %d, fd = %d", head.uid, conn->get_fd());
     server.player_leave_game(head.uid);
+    RspGamePlayerLeave rsp;
+    server.uid_to_conn[head.uid]->send(packMessage(MessageID::RSP_GAME_PLAYER_LEAVE, head.uid, rsp));
 }
 void onGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, int len){
     if(head.uid < 0){

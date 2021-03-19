@@ -52,6 +52,13 @@ bool Logical::check(int player_index, Block block){
     return true;
 }
 
+int Logical::is_alive(int player_index){
+    if(player_index < 0 || player_index > MAX_PLAYER){
+        return 0;
+    }
+    return player_state[player_index] == PLAYER_GAME_ALIVE;
+}
+
 void Logical::eliminate_lines(int player_index){
     std::vector<int> uneliminates_lines = {};
     for(int i = MAP_SIZE_N - 1; i >= 0; i --){
@@ -175,15 +182,10 @@ void Logical::print(){
     if(run == 0){
         return ;
     }
-    if(alive_player() == 0){
-        return ;
-    }
-    clear();
     set_map_block_for_all_player(MAP_BLOCK_NOT_EMPTY);
     print_mode_single(0);
     print_mode_match();
     set_map_block_for_all_player(MAP_BLOCK_EMPTY);
-    refresh();
 }
 
 

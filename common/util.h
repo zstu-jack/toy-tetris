@@ -20,6 +20,7 @@ T get_random(T l, T r){
 }
 
 std::string packMessage(int msgid, int uin, google::protobuf::Message& message);
+std::string packMessage(int msgid, int uin, int msg_len = 12);
 
 long long get_1970_ms();
 

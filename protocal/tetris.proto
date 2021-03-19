@@ -10,9 +10,11 @@ enum MessageID
     INF_PLAYER_MATCH_SUCCESS = 5;
 
     REQ_GAME_PLAYER_LEAVE = 99;
-    REQ_GAME_PLAYER_OP = 100;
-    GAME_INF_PLAYER_OP = 101;
-    GAME_INF_GAME_END = 102;
+    RSP_GAME_PLAYER_LEAVE = 100;
+
+    REQ_GAME_PLAYER_OP = 110;
+    GAME_INF_PLAYER_OP = 111;
+
 }
 message ReqPlayerLogin{
     required string name = 1;
@@ -33,6 +35,7 @@ message ReqGamePlayerOp{
     required int32 op = 1;
 }
 message ReqGamePlayerLeave{}
+message RspGamePlayerLeave{}
 message GameOp{
     required int32 op = 1;
     required int32 uid = 2;

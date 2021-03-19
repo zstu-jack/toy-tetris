@@ -48,6 +48,7 @@ public:
 public:
     Logical();
 
+    int is_alive(int player_index);
     void eliminate_lines(int player_index);
     void set_map_block(int player_index, int map_block);
     void set_map_block_for_all_player(int map_block);

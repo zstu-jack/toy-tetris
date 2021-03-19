@@ -39,6 +39,12 @@ struct LocalPlayer {
 LocalPlayer player;
 int gameid;
 std::vector<int> game_uins;
+int uin_index(int uid){
+    for(int i = 0; i < game_uins.size(); i ++){
+        if(game_uins[i] == uid) return i;
+    }
+    return -1;
+}
 
 int decodeMessage(const TcpConnection* conn, const char* msg, int len){
     if(len < 4) return 0;
@@ -92,13 +98,14 @@ void init_input(){
     initscr();
     nodelay(stdscr, true);   // make getch() non-block call.
     noecho();
+    curs_set(0);
     clear();
 }
 
 void print_screen(){
+    clear();
     switch (player_state) {
         case CLIENT_PLAYER_STATE_IDLE:
-            clear();
             printw(" \n\n single mode, input `s`\n\n match mode, input `m` \n\n> ");
             ch = getch();
             if (toupper(ch) == 'S'){
@@ -114,6 +121,7 @@ void print_screen(){
             }
             break;
         case CLIENT_PLAYER_STATE_SINGLE_GAME:
+
             ch = getch();
             if(key_to_op_type.count((int)ch)){
                 logical.input(0, key_to_op_type.find(ch)->second);
@@ -127,13 +135,12 @@ void print_screen(){
             }
             break;
         case CLIENT_PLAYER_STATE_MATCHING:
-            clear();
             printw("\n\n matching...... input `q` to quit\n\n > ");
             ch = getch();
             if(toupper(ch) == 'Q'){
                 // TODO: quit match
             }
-            refresh();
+            break;
         case CLIENT_PLAYER_STATE_MATCH_GAME:
             ch = getch();
             if(key_to_op_type.count((int)ch)){
@@ -142,17 +149,20 @@ void print_screen(){
                 player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_OP, player.player_uid, req));
             }
             logical.print();
+            if(!logical.is_alive(uin_index(player.player_uid))){
+                player_state = CLIENT_PLAYER_STATE_MATCH_GAME_DEAD;
+            }
             break;
         case CLIENT_PLAYER_STATE_MATCH_GAME_DEAD:
             logical.print();
             printw("\n\n dead, input `q` to quit\n\n > ");
             ch = getch();
-            if(toupper(ch) != 'Q') {
-                // TODO: notify server.
-                player_state = CLIENT_PLAYER_STATE_IDLE;
+            if(toupper(ch) == 'Q') {
+                player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_LEAVE, player.player_uid));
             }
             break;
     }
+    refresh();
 }
 
 //////////// net /////////////
@@ -179,6 +189,9 @@ void onInfPlayerMatchSuccess(const TcpConnection* conn, Head& head, const char* 
     gameid = inf.gameid();
     logical.init(uids.size(), 0, GAME_MODE_MATCH);
     logical.start();
+}
+void RspGamePlayerLeave(const TcpConnection* conn, Head& head, const char* msg, int len){
+    player_state = CLIENT_PLAYER_STATE_IDLE;
 }
 void onInfGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, int len){
     InfGamePlayerOp inf;
@@ -212,6 +225,7 @@ int main(int argc, char* argv[])
         callbacks[(int) MessageID::RSP_LOGIN] = std::bind(onRspLogin, _1, _2, _3, _4);
         callbacks[(int) MessageID::RSP_PLAYER_MATCH] = std::bind(onRspPlayerMatch, _1, _2, _3, _4);
         callbacks[(int) MessageID::INF_PLAYER_MATCH_SUCCESS] = std::bind(onInfPlayerMatchSuccess, _1, _2, _3, _4);
+        callbacks[(int) MessageID::RSP_GAME_PLAYER_LEAVE] = std::bind(RspGamePlayerLeave, _1, _2, _3, _4);
         callbacks[(int) MessageID::GAME_INF_PLAYER_OP] = std::bind(onInfGamePlayerOp, _1,_2,_3,_4);
     }
 
