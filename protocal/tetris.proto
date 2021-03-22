@@ -1,5 +1,10 @@
 syntax = "proto2";
 
+enum ResultID{
+    RESULT_SUCCESS = 0;
+    RESULT_FAIL = 1;
+}
+
 enum MessageID
 {
     REQ_LOGIN = 1;
@@ -8,6 +13,8 @@ enum MessageID
     REQ_PLAYER_MATCH = 3;
     RSP_PLAYER_MATCH = 4;
     INF_PLAYER_MATCH_SUCCESS = 5;
+    REQ_PLAYER_CANCEL_MATCH = 6;
+    RSP_PLAYER_CANCEL_MATCH = 7;
 
     REQ_GAME_PLAYER_LEAVE = 99;
     RSP_GAME_PLAYER_LEAVE = 100;
@@ -16,26 +23,31 @@ enum MessageID
     GAME_INF_PLAYER_OP = 111;
 
 }
+// REQ_LOGIN
 message ReqPlayerLogin{
     required string name = 1;
 }
+// RSP_LOGIN
 message RspPlayerLogin{
     required int32 uid = 1;
 }
+// REQ_PLAYER_MATCH
 message ReqPlayerMatch{
     required int32 player_number = 1;
 }
-message RspPlayerMatch{}
+// INF_PLAYER_MATCH_SUCCESS
 message InfPlayerMatchSuccess{
     repeated int32 uids = 1;
     required int32 gameid = 2;
+}
+// RSP_PLAYER_CANCEL_MATCH
+message RspPlayerCancelMatch{
+    required int32 result_id = 1;
 }
 
 message ReqGamePlayerOp{
     required int32 op = 1;
 }
-message ReqGamePlayerLeave{}
-message RspGamePlayerLeave{}
 message GameOp{
     required int32 op = 1;
     required int32 uid = 2;
@@ -43,7 +55,4 @@ message GameOp{
 message InfGamePlayerOp{
     required int32 gameid = 1;
     repeated GameOp ops = 2;
-}
-message InfGameGameEnd{
-
 }

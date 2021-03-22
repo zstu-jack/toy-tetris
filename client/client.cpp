@@ -21,6 +21,8 @@
 #include "../common/common_define.h"
 
 #include "../logical.h"
+#include "client.h"
+#include "handlers.h"
 
 long long current_timestamp_ms = 0;
 std::map<int, std::function<void(const TcpConnection* , Head& , const char*, int) > > callbacks;
@@ -28,39 +30,14 @@ Logger logger(DETAIL, "client_log");
 
 //////
 char ch;
-Logical logical;
-int player_state;
-struct LocalPlayer {
-    TcpConnection* conn;
-    int connected;
-    std::string player_name;
-    int player_uid;
-};
 LocalPlayer player;
-int gameid;
-std::vector<int> game_uins;
-int uin_index(int uid){
-    for(int i = 0; i < game_uins.size(); i ++){
-        if(game_uins[i] == uid) return i;
-    }
-    return -1;
-}
-
-int decodeMessage(const TcpConnection* conn, const char* msg, int len){
-    if(len < 4) return 0;
-    auto pkgSize = ntohl(*(int32_t *) msg);
-    if(pkgSize >= SOCKET_APP_MAX_BUFFER_SIZE || pkgSize < 0){
-        return -1;
-    }
-    return pkgSize;
-}
 
 void onConnection(const TcpConnection* conn)
 {
     player.conn = const_cast<TcpConnection*>(conn);
     if (conn->connected())
     {
-        player_state = CLIENT_PLAYER_STATE_IDLE;
+        player.player_state = CLIENT_PLAYER_STATE_IDLE;
         logger.LOG(DETAIL,"connect [fd = %d]",  conn->get_fd());
         ReqPlayerLogin req;
         req.set_name(player.player_name);
@@ -69,7 +46,7 @@ void onConnection(const TcpConnection* conn)
     else
     {
         logger.LOG(DETAIL, "disconnect [fd = %d]", conn->get_fd());
-        player.connected = 0;
+        player.login = 0;
         player.player_uid = -1;
     }
 }
@@ -93,7 +70,7 @@ void init_input(){
             fflush(stdout);
         }
     }
-    player_state = CLIENT_PLAYER_STATE_IDLE;
+    player.player_state = CLIENT_PLAYER_STATE_IDLE;
 
     initscr();
     nodelay(stdscr, true);   // make getch() non-block call.
@@ -104,59 +81,55 @@ void init_input(){
 
 void print_screen(){
     clear();
-    switch (player_state) {
+    ch = getch();
+    switch (player.player_state) {
         case CLIENT_PLAYER_STATE_IDLE:
             printw(" \n\n single mode, input `s`\n\n match mode, input `m` \n\n> ");
-            ch = getch();
             if (toupper(ch) == 'S'){
-                logical.init(1, get_1970_ms(), GAME_MODE_SINGLE);
-                logical.start();
-                player_state = CLIENT_PLAYER_STATE_SINGLE_GAME;
+                player.logical.init(1, get_1970_ms(), GAME_MODE_SINGLE);
+                player.logical.start();
+                player.player_state = CLIENT_PLAYER_STATE_SINGLE_GAME;
             }else if(toupper(ch) == 'M'){
-                if(player.connected){
-                    ReqPlayerMatch req;
-                    req.set_player_number(MATCH_PLAYER_NUM);
-                    player.conn->send(packMessage(MessageID::REQ_PLAYER_MATCH, player.player_uid, req));
+                if(!player.login){
+                    break;
                 }
+                ReqPlayerMatch req;
+                req.set_player_number(MATCH_PLAYER_NUM);
+                player.conn->send(packMessage(MessageID::REQ_PLAYER_MATCH, player.player_uid, req));
             }
             break;
         case CLIENT_PLAYER_STATE_SINGLE_GAME:
-
-            ch = getch();
             if(key_to_op_type.count((int)ch)){
-                logical.input(0, key_to_op_type.find(ch)->second);
+                player.logical.input(0, key_to_op_type.find(ch)->second);
             }
-            logical.update(current_timestamp_ms);
-            logical.print();
-            if(logical.alive_player() == 0){
+            player.logical.update(current_timestamp_ms);
+            player.logical.print();
+            if(player.logical.alive_player() == 0){
                 printw("\n\n dead, input `q` to quit\n\n > ");
                 do{ ch = getch(); } while (toupper(ch) != 'Q');
-                player_state = CLIENT_PLAYER_STATE_IDLE;
+                player.player_state = CLIENT_PLAYER_STATE_IDLE;
             }
             break;
         case CLIENT_PLAYER_STATE_MATCHING:
             printw("\n\n matching...... input `q` to quit\n\n > ");
-            ch = getch();
             if(toupper(ch) == 'Q'){
-                // TODO: quit match
+                player.conn->send(packMessage(MessageID::REQ_PLAYER_CANCEL_MATCH, player.player_uid));
             }
             break;
         case CLIENT_PLAYER_STATE_MATCH_GAME:
-            ch = getch();
             if(key_to_op_type.count((int)ch)){
                 ReqGamePlayerOp req;
                 req.set_op((int)key_to_op_type.find(ch)->second);
                 player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_OP, player.player_uid, req));
             }
-            logical.print();
-            if(!logical.is_alive(uin_index(player.player_uid))){
-                player_state = CLIENT_PLAYER_STATE_MATCH_GAME_DEAD;
+            player.logical.print();
+            if(!player.logical.is_alive(index_of(player.game_uids.begin(), player.game_uids.end(), player.player_uid))){
+                player.player_state = CLIENT_PLAYER_STATE_MATCH_GAME_DEAD;
             }
             break;
         case CLIENT_PLAYER_STATE_MATCH_GAME_DEAD:
-            logical.print();
+            player.logical.print();
             printw("\n\n dead, input `q` to quit\n\n > ");
-            ch = getch();
             if(toupper(ch) == 'Q') {
                 player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_LEAVE, player.player_uid));
             }
@@ -165,58 +138,6 @@ void print_screen(){
     refresh();
 }
 
-//////////// net /////////////
-void onRspLogin(const TcpConnection* conn, Head& head, const char* msg, int len){
-    RspPlayerLogin rsp;
-    rsp.ParseFromArray(msg+head.size(), len-head.size());
-    player.connected = 1;
-    player.player_uid = rsp.uid();
-}
-void onRspPlayerMatch(const TcpConnection* conn, Head& head, const char* msg, int len){
-    player_state = CLIENT_PLAYER_STATE_MATCHING;
-}
-void onInfPlayerMatchSuccess(const TcpConnection* conn, Head& head, const char* msg, int len){
-//    repeated int32 uids = 1;
-//    required int32 gameid = 2;
-    InfPlayerMatchSuccess inf;
-    inf.ParseFromArray(msg+head.size(), len-head.size());
-    std::vector<int> uids;
-    for(int i = 0; i < inf.uids_size(); i ++){
-        uids.push_back(inf.uids(i));
-    }
-    player_state = CLIENT_PLAYER_STATE_MATCH_GAME;
-    game_uins = uids;
-    gameid = inf.gameid();
-    logical.init(uids.size(), 0, GAME_MODE_MATCH);
-    logical.start();
-}
-void RspGamePlayerLeave(const TcpConnection* conn, Head& head, const char* msg, int len){
-    player_state = CLIENT_PLAYER_STATE_IDLE;
-}
-void onInfGamePlayerOp(const TcpConnection* conn, Head& head, const char* msg, int len){
-    InfGamePlayerOp inf;
-    inf.ParseFromArray(msg+head.size(), len-head.size());
-    if(inf.gameid() != gameid){
-        logger.LOG(WARNING, "local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
-        return ;
-    }
-    logger.LOG(DETAIL, "InfGamePlayerOp gameid = %d, remote gameid = %d, op size=%d\n", gameid, inf.gameid(),inf.ops_size());
-    for(int j = 0; j < inf.ops_size(); j ++) {
-        auto& op = inf.ops(j);
-        int index = -1;
-        for (int i = 0; i < game_uins.size(); i++) {
-            if (game_uins[i] == op.uid()){
-                index = i;
-            }
-        }
-        if(index == -1){
-            logger.LOG(WARNING, "no such uid, local gameid = %d, remote gameid = %d\n", gameid, inf.gameid());
-            continue;
-        }
-        logical.input(index, op.op());
-    }
-
-}
 
 int main(int argc, char* argv[])
 {

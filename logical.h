@@ -31,19 +31,21 @@ struct Block{
 class Logical{
 public:
     Map<MAP_SIZE_N, MAP_SIZE_M> map[MAX_PLAYER];
-    std::vector<int> block_down_types;
-    int block_down_index[MAX_PLAYER];   // next down block type
-    int block_down_last_time_ms[MAX_PLAYER];
     Block block_down_state[MAX_PLAYER];
+
+    std::vector<int> block_down_types;
+    int block_down_index[MAX_PLAYER];   // next index of down block type of player(i)  < -- > block_down_types[block_down_index[MAX_PLAYER]]
+    int block_down_last_time_ms[MAX_PLAYER];
 
     int alive_player();
     int player_state[MAX_PLAYER];
     int number_player;
 public:
     int game_mode;
+    int run;
+
     int server_side;
     Game* server_game;
-    int run;
 
 public:
     Logical();

@@ -191,11 +191,14 @@ void Logical::print(){
 
 void Logical::input(int player_index, int op){
     if(run == 0){
+        logger.LOG(DETAIL, "just return, not run now");
         return ;
     }
     if(player_state[player_index] == PLAYER_GAME_DEATH){
+        logger.LOG(DETAIL, "just return, player death");
         return ;
     }
+    logger.LOG(DETAIL, "index(%d) input op(%d)", player_index, op);
 
 #ifdef SERVER_SIDE
     if(server_side){
