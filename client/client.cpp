@@ -34,18 +34,19 @@ LocalPlayer player;
 
 void onConnection(const TcpConnection* conn)
 {
-    player.conn = const_cast<TcpConnection*>(conn);
     if (conn->connected())
     {
+        player.conn = const_cast<TcpConnection*>(conn);
         player.player_state = CLIENT_PLAYER_STATE_IDLE;
         logger.LOG(DETAIL,"connect [fd = %d]",  conn->get_fd());
         ReqPlayerLogin req;
         req.set_name(player.player_name);
-        player.conn->send(packMessage(MessageID::REQ_LOGIN,-1, req));
+        player.send(packMessage(MessageID::REQ_LOGIN,-1, req));
     }
     else
     {
         logger.LOG(DETAIL, "disconnect [fd = %d]", conn->get_fd());
+        player.conn = nullptr;
         player.login = 0;
         player.player_uid = -1;
     }
@@ -95,7 +96,7 @@ void print_screen(){
                 }
                 ReqPlayerMatch req;
                 req.set_player_number(MATCH_PLAYER_NUM);
-                player.conn->send(packMessage(MessageID::REQ_PLAYER_MATCH, player.player_uid, req));
+                player.send(packMessage(MessageID::REQ_PLAYER_MATCH, player.player_uid, req));
             }
             break;
         case CLIENT_PLAYER_STATE_SINGLE_GAME:
@@ -113,14 +114,14 @@ void print_screen(){
         case CLIENT_PLAYER_STATE_MATCHING:
             printw("\n\n matching...... input `q` to quit\n\n > ");
             if(toupper(ch) == 'Q'){
-                player.conn->send(packMessage(MessageID::REQ_PLAYER_CANCEL_MATCH, player.player_uid));
+                player.send(packMessage(MessageID::REQ_PLAYER_CANCEL_MATCH, player.player_uid));
             }
             break;
         case CLIENT_PLAYER_STATE_MATCH_GAME:
             if(key_to_op_type.count((int)ch)){
                 ReqGamePlayerOp req;
                 req.set_op((int)key_to_op_type.find(ch)->second);
-                player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_OP, player.player_uid, req));
+                player.send(packMessage(MessageID::REQ_GAME_PLAYER_OP, player.player_uid, req));
             }
             player.logical.print();
             if(!player.logical.is_alive(index_of(player.game_uids.begin(), player.game_uids.end(), player.player_uid))){
@@ -131,7 +132,7 @@ void print_screen(){
             player.logical.print();
             printw("\n\n dead, input `q` to quit\n\n > ");
             if(toupper(ch) == 'Q') {
-                player.conn->send(packMessage(MessageID::REQ_GAME_PLAYER_LEAVE, player.player_uid));
+                player.send(packMessage(MessageID::REQ_GAME_PLAYER_LEAVE, player.player_uid));
             }
             break;
     }
@@ -170,3 +171,11 @@ int main(int argc, char* argv[])
     }while(!quit);
 }
 
+
+void LocalPlayer::send(const std::string& msg){
+    if(conn == nullptr){
+        logger.log(WARNING, "conn = nullptr");
+        return ;
+    }
+    conn->send(msg);
+}

@@ -34,7 +34,13 @@ void onMessage(const TcpConnection* conn, const char* msg, int len){
     auto ptr = msg;
     Head head{ntohl(*(uint32_t *) ptr), ntohl(*(uint32_t *) (ptr+4)), ntohl(*(uint32_t *) (ptr+8))};
     logger.LOG(DETAIL,"[fd = %d, head = %s]", conn->get_fd(), head.to_string().c_str());
-    callbacks[head.msg_id](conn, head, msg, len);
+
+    auto func_iter = callbacks.find(head.msg_id);
+    if(func_iter == callbacks.end()){
+        logger.LOG(WARNING, "no such msgid handler, msgid = %d", head.msg_id);
+        return ;
+    }
+    func_iter->second(conn, head, msg, len);
 }
 
 

@@ -19,6 +19,8 @@ struct LocalPlayer {
     int gameid;
     std::vector<int> game_uids;
     Logical logical;
+
+    void send(const std::string& msg);
 };
 
 #endif //CLIENT_H
